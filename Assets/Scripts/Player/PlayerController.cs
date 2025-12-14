@@ -27,6 +27,7 @@ public class PlayerController : MonoBehaviour
         isDead = false;
         transform.localScale = new Vector3(playerScale, playerScale, 1f);
         lockedXPosition = transform.position.x;
+        gameObject.tag = "Player";
     }
 
     void Update()

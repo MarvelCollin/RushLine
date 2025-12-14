@@ -47,16 +47,19 @@ public class Diamond : MonoBehaviour
 
     void FlyToUI()
     {
-        if (UIManager.Instance != null)
+        if (UIManager.Instance != null && Camera.main != null)
         {
-            Vector3 targetWorld = Camera.main.ScreenToWorldPoint(UIManager.Instance.GetDiamondPanelWorldPosition());
+            Vector3 panelWorldPos = UIManager.Instance.GetDiamondPanelWorldPosition();
+            Vector3 screenPos = Camera.main.WorldToScreenPoint(transform.position);
+            Vector3 targetScreenPos = new Vector3(Screen.width - 100f, Screen.height - 40f, screenPos.z);
+            Vector3 targetWorld = Camera.main.ScreenToWorldPoint(targetScreenPos);
             targetWorld.z = 0;
             
             transform.position = Vector3.MoveTowards(transform.position, targetWorld, flySpeed * Time.deltaTime);
             transform.localScale = Vector3.Lerp(transform.localScale, Vector3.zero, flyScaleSpeed * Time.deltaTime);
             
             float dist = Vector3.Distance(transform.position, targetWorld);
-            if (dist < 0.5f || transform.localScale.x < 0.1f)
+            if (dist < 0.3f || transform.localScale.x < 0.05f)
             {
                 if (GameManager.Instance != null)
                 {
@@ -67,6 +70,10 @@ public class Diamond : MonoBehaviour
         }
         else
         {
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.AddDiamond();
+            }
             Destroy(gameObject);
         }
     }
