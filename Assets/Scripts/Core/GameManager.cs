@@ -1,21 +1,15 @@
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
 
-    [Header("UI References")]
-    public Text scoreText;
-    public GameObject gameOverPanel;
-    public Text gameOverScoreText;
-    public Button restartButton;
-
     [Header("Game Settings")]
     public float difficultyIncreaseRate = 0.1f;
 
     private float score;
+    private int diamondCount;
     private bool isGameOver;
     private float currentDifficulty;
 
@@ -34,17 +28,19 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         score = 0;
+        diamondCount = 0;
         isGameOver = false;
         currentDifficulty = 1f;
         
-        if (gameOverPanel != null)
+        if (UIManager.Instance == null)
         {
-            gameOverPanel.SetActive(false);
+            gameObject.AddComponent<UIManager>();
         }
-
-        if (restartButton != null)
+        
+        if (UIManager.Instance != null)
         {
-            restartButton.onClick.AddListener(RestartGame);
+            UIManager.Instance.UpdateScore(0);
+            UIManager.Instance.UpdateDiamondCount(0);
         }
     }
 
@@ -54,15 +50,11 @@ public class GameManager : MonoBehaviour
         {
             score += Time.deltaTime;
             currentDifficulty = 1f + (score * difficultyIncreaseRate * 0.01f);
-            UpdateScoreUI();
-        }
-    }
-
-    void UpdateScoreUI()
-    {
-        if (scoreText != null)
-        {
-            scoreText.text = "Score: " + Mathf.FloorToInt(score).ToString();
+            
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.UpdateScore(Mathf.FloorToInt(score));
+            }
         }
     }
 
@@ -70,14 +62,9 @@ public class GameManager : MonoBehaviour
     {
         isGameOver = true;
 
-        if (gameOverPanel != null)
+        if (UIManager.Instance != null)
         {
-            gameOverPanel.SetActive(true);
-        }
-
-        if (gameOverScoreText != null)
-        {
-            gameOverScoreText.text = "Score: " + Mathf.FloorToInt(score).ToString();
+            UIManager.Instance.ShowGameOver(Mathf.FloorToInt(score));
         }
     }
 
@@ -99,5 +86,19 @@ public class GameManager : MonoBehaviour
     public float GetDifficulty()
     {
         return currentDifficulty;
+    }
+
+    public void AddDiamond()
+    {
+        diamondCount++;
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.UpdateDiamondCount(diamondCount);
+        }
+    }
+
+    public int GetDiamondCount()
+    {
+        return diamondCount;
     }
 }

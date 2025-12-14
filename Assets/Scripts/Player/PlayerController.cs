@@ -11,6 +11,7 @@ public class PlayerController : MonoBehaviour
 
     [Header("Position Lock")]
     public float lockedXPosition = -3f;
+    public float fallDeathY = -10f;
 
     private Rigidbody2D rb;
     private BoxCollider2D col;
@@ -31,6 +32,12 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         if (isDead) return;
+
+        if (transform.position.y < fallDeathY)
+        {
+            Die();
+            return;
+        }
 
         if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
         {
