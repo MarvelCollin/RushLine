@@ -33,6 +33,11 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         if (isDead) return;
+        
+        if (GameManager.Instance != null && GameManager.Instance.GetCurrentState() == GameState.Menu)
+        {
+            return;
+        }
 
         if (transform.position.y < fallDeathY)
         {
@@ -40,11 +45,24 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
+        int currentMaxJumps = maxJumps;
+        if (PowerUpManager.Instance != null)
         {
-            if (jumpCount < maxJumps)
+            currentMaxJumps = PowerUpManager.Instance.GetMaxJumps();
+        }
+
+        bool jumpInput = Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0);
+        
+        if (jumpInput)
+        {
+            if (jumpCount < currentMaxJumps)
             {
                 Jump();
+            }
+            
+            if (PowerUpManager.Instance != null && PowerUpManager.Instance.IsLaserActive())
+            {
+                Bullet.SpawnBullet(transform.position);
             }
         }
     }
@@ -69,7 +87,11 @@ public class PlayerController : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("Obstacle"))
         {
-            Die();
+            if (PowerUpManager.Instance != null && PowerUpManager.Instance.IsInvincibleAfterRevive())
+            {
+                return;
+            }
+            TryDie();
             return;
         }
 
@@ -120,8 +142,22 @@ public class PlayerController : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("Obstacle"))
         {
-            Die();
+            if (PowerUpManager.Instance != null && PowerUpManager.Instance.IsInvincibleAfterRevive())
+            {
+                return;
+            }
+            TryDie();
         }
+    }
+
+    void TryDie()
+    {
+        if (PowerUpManager.Instance != null && PowerUpManager.Instance.TryUseSecondChance())
+        {
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+            return;
+        }
+        Die();
     }
 
     void Die()

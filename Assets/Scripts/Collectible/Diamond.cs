@@ -13,6 +13,10 @@ public class Diamond : MonoBehaviour
     public float flySpeed = 15f;
     public float flyScaleSpeed = 3f;
 
+    [Header("Magnet Settings")]
+    public float magnetRange = 5f;
+    public float magnetSpeed = 8f;
+
     private Vector3 startPosition;
     private float timeOffset;
     private Vector3 baseScale;
@@ -20,6 +24,7 @@ public class Diamond : MonoBehaviour
     private Vector3 targetScreenPos;
     private SpriteRenderer sr;
     private Collider2D col;
+    private Transform playerTransform;
 
     void Start()
     {
@@ -28,6 +33,12 @@ public class Diamond : MonoBehaviour
         baseScale = transform.localScale;
         sr = GetComponent<SpriteRenderer>();
         col = GetComponent<Collider2D>();
+        
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null)
+        {
+            playerTransform = player.transform;
+        }
     }
 
     void Update()
@@ -36,6 +47,19 @@ public class Diamond : MonoBehaviour
         {
             FlyToUI();
             return;
+        }
+
+        if (PowerUpManager.Instance != null && PowerUpManager.Instance.IsMagnetActive() && playerTransform != null)
+        {
+            float distanceToPlayer = Vector3.Distance(transform.position, playerTransform.position);
+            
+            if (distanceToPlayer < magnetRange)
+            {
+                Vector3 directionToPlayer = (playerTransform.position - transform.position).normalized;
+                transform.position += directionToPlayer * magnetSpeed * Time.deltaTime;
+                startPosition = transform.position;
+                return;
+            }
         }
 
         float bobOffset = Mathf.Sin((Time.time + timeOffset) * bobSpeed) * bobHeight;

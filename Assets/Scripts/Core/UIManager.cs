@@ -39,7 +39,7 @@ public class UIManager : MonoBehaviour
             gameObject.AddComponent<GameManager>();
         }
         
-        highScore = PlayerPrefs.GetInt("HighScore", 0);
+        highScore = PersistentData.GetHighScore();
         
         CreateUI();
         CreateEventSystem();
@@ -354,8 +354,8 @@ public class UIManager : MonoBehaviour
         retryButton = CreateButton(modalBox.transform, "RetryButton", "RETRY", new Vector2(0, -275), new Color(0.25f, 0.75f, 0.35f, 1f));
         retryButton.onClick.AddListener(OnRetryClicked);
 
-        quitButton = CreateButton(modalBox.transform, "QuitButton", "QUIT", new Vector2(0, -345), new Color(0.75f, 0.25f, 0.25f, 1f));
-        quitButton.onClick.AddListener(OnQuitClicked);
+        quitButton = CreateButton(modalBox.transform, "HomeButton", "🏠 HOME", new Vector2(0, -345), new Color(0.4f, 0.5f, 0.7f, 1f));
+        quitButton.onClick.AddListener(OnHomeClicked);
 
         gameOverPanel.SetActive(false);
     }
@@ -425,12 +425,7 @@ public class UIManager : MonoBehaviour
 
     public void ShowGameOver(int finalScore)
     {
-        if (finalScore > highScore)
-        {
-            highScore = finalScore;
-            PlayerPrefs.SetInt("HighScore", highScore);
-            PlayerPrefs.Save();
-        }
+        highScore = PersistentData.GetHighScore();
 
         if (finalScoreText != null)
         {
@@ -444,7 +439,9 @@ public class UIManager : MonoBehaviour
 
         if (finalDiamondText != null && GameManager.Instance != null)
         {
-            finalDiamondText.text = "◆ " + GameManager.Instance.GetDiamondCount().ToString();
+            int sessionDiamonds = GameManager.Instance.GetSessionDiamonds();
+            int totalDiamonds = PersistentData.GetDiamonds();
+            finalDiamondText.text = "◆ +" + sessionDiamonds.ToString() + " (Total: " + totalDiamonds.ToString() + ")";
         }
 
         if (gameOverPanel != null)
@@ -458,9 +455,10 @@ public class UIManager : MonoBehaviour
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
-    void OnQuitClicked()
+    void OnHomeClicked()
     {
-        Application.Quit();
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
     public Vector3 GetDiamondPanelWorldPosition()
