@@ -59,11 +59,12 @@ public class PlayerController : MonoBehaviour
             {
                 Jump();
             }
-            
-            if (PowerUpManager.Instance != null && PowerUpManager.Instance.IsLaserActive())
-            {
-                Bullet.SpawnBullet(transform.position);
-            }
+        }
+
+        bool shootInput = Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3);
+        if (shootInput && PowerUpManager.Instance != null && PowerUpManager.Instance.IsLaserActive())
+        {
+            Bullet.SpawnBullet(transform.position);
         }
     }
 

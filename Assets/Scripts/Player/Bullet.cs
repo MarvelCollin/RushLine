@@ -29,8 +29,6 @@ public class Bullet : MonoBehaviour
         CircleCollider2D col = gameObject.AddComponent<CircleCollider2D>();
         col.isTrigger = true;
         col.radius = 0.2f;
-        
-        gameObject.tag = "Bullet";
     }
 
     void Update()

@@ -9,8 +9,15 @@ public class MainMenuUI : MonoBehaviour
     private Canvas canvas;
     private GameObject menuPanel;
     private GameObject shopPanel;
+    private GameObject selectPanel;
     private Text diamondText;
     private bool isShopOpen = false;
+    private System.Collections.Generic.List<string> selectedSkills = new System.Collections.Generic.List<string>();
+    
+    private string cheatInput = "";
+    private float cheatResetTimer = 0f;
+    private const string CHEAT_CODE = "kolin";
+    private const float CHEAT_RESET_TIME = 2f;
 
     void Awake()
     {
@@ -31,9 +38,87 @@ public class MainMenuUI : MonoBehaviour
         CreateCanvas();
         CreateMainMenu();
         CreateShopPanel();
+        CreateSelectPanel();
         
         menuPanel.SetActive(true);
         shopPanel.SetActive(false);
+        selectPanel.SetActive(false);
+    }
+
+    void Update()
+    {
+        HandleCheatInput();
+    }
+
+    void HandleCheatInput()
+    {
+        if (isShopOpen) return;
+
+        if (cheatResetTimer > 0)
+        {
+            cheatResetTimer -= Time.unscaledDeltaTime;
+            if (cheatResetTimer <= 0)
+            {
+                cheatInput = "";
+            }
+        }
+
+        foreach (char c in Input.inputString)
+        {
+            if (char.IsLetter(c))
+            {
+                cheatInput += char.ToLower(c);
+                cheatResetTimer = CHEAT_RESET_TIME;
+
+                if (cheatInput.Length > CHEAT_CODE.Length)
+                {
+                    cheatInput = cheatInput.Substring(cheatInput.Length - CHEAT_CODE.Length);
+                }
+
+                if (cheatInput == CHEAT_CODE)
+                {
+                    PersistentData.AddDiamonds(100);
+                    UpdateDiamondDisplay();
+                    ShowCheatActivated();
+                    cheatInput = "";
+                }
+            }
+        }
+    }
+
+    void ShowCheatActivated()
+    {
+        GameObject cheatMsg = new GameObject("CheatMessage");
+        cheatMsg.transform.SetParent(canvas.transform, false);
+
+        RectTransform msgRect = cheatMsg.AddComponent<RectTransform>();
+        msgRect.anchorMin = new Vector2(0.5f, 0.5f);
+        msgRect.anchorMax = new Vector2(0.5f, 0.5f);
+        msgRect.pivot = new Vector2(0.5f, 0.5f);
+        msgRect.anchoredPosition = new Vector2(0, -150);
+        msgRect.sizeDelta = new Vector2(400, 60);
+
+        Image msgBg = cheatMsg.AddComponent<Image>();
+        msgBg.color = new Color(0.2f, 0.8f, 0.3f, 0.95f);
+
+        GameObject textObj = new GameObject("Text");
+        textObj.transform.SetParent(cheatMsg.transform, false);
+
+        RectTransform textRect = textObj.AddComponent<RectTransform>();
+        textRect.anchorMin = Vector2.zero;
+        textRect.anchorMax = Vector2.one;
+        textRect.offsetMin = Vector2.zero;
+        textRect.offsetMax = Vector2.zero;
+
+        Text msgText = textObj.AddComponent<Text>();
+        msgText.text = "+100 DIAMONDS ADDED!";
+        msgText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        msgText.fontSize = 28;
+        msgText.fontStyle = FontStyle.Bold;
+        msgText.alignment = TextAnchor.MiddleCenter;
+        msgText.color = Color.white;
+
+        Destroy(cheatMsg, 2f);
     }
 
     void CreateCanvas()
@@ -420,8 +505,23 @@ public class MainMenuUI : MonoBehaviour
         priceText.alignment = TextAnchor.MiddleCenter;
         priceText.color = new Color(0.3f, 0.85f, 1f, 1f);
 
-        bool owned = PersistentData.OwnsPowerUp(id);
-        string equipped = PersistentData.GetEquippedPowerUp();
+        int ownedCount = PersistentData.GetSkillCount(id);
+
+        GameObject ownedObj = new GameObject("Owned");
+        ownedObj.transform.SetParent(card.transform, false);
+        RectTransform ownedRect = ownedObj.AddComponent<RectTransform>();
+        ownedRect.anchorMin = new Vector2(0.5f, 1);
+        ownedRect.anchorMax = new Vector2(0.5f, 1);
+        ownedRect.pivot = new Vector2(0.5f, 1);
+        ownedRect.anchoredPosition = new Vector2(0, -185);
+        ownedRect.sizeDelta = new Vector2(200, 30);
+        Text ownedText = ownedObj.AddComponent<Text>();
+        ownedText.text = "Owned: " + ownedCount.ToString();
+        ownedText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        ownedText.fontSize = 20;
+        ownedText.fontStyle = FontStyle.Bold;
+        ownedText.alignment = TextAnchor.MiddleCenter;
+        ownedText.color = ownedCount > 0 ? new Color(0.4f, 0.9f, 0.4f, 1f) : new Color(0.6f, 0.6f, 0.6f, 1f);
 
         GameObject buttonObj = new GameObject("Button");
         buttonObj.transform.SetParent(card.transform, false);
@@ -449,30 +549,286 @@ public class MainMenuUI : MonoBehaviour
         buttonText.alignment = TextAnchor.MiddleCenter;
         buttonText.color = Color.white;
 
-        if (owned)
+        buttonBg.color = new Color(0.8f, 0.6f, 0.2f, 1f);
+        buttonText.text = "BUY";
+        button.onClick.AddListener(() => OnBuyClicked(id, price, ownedText));
+    }
+
+    void CreateSelectPanel()
+    {
+        selectPanel = new GameObject("SelectPanel");
+        selectPanel.transform.SetParent(canvas.transform, false);
+
+        RectTransform panelRect = selectPanel.AddComponent<RectTransform>();
+        panelRect.anchorMin = Vector2.zero;
+        panelRect.anchorMax = Vector2.one;
+        panelRect.offsetMin = Vector2.zero;
+        panelRect.offsetMax = Vector2.zero;
+
+        Image bg = selectPanel.AddComponent<Image>();
+        bg.color = new Color(0.05f, 0.05f, 0.1f, 0.98f);
+
+        GameObject titleObj = new GameObject("Title");
+        titleObj.transform.SetParent(selectPanel.transform, false);
+        RectTransform titleRect = titleObj.AddComponent<RectTransform>();
+        titleRect.anchorMin = new Vector2(0.5f, 1f);
+        titleRect.anchorMax = new Vector2(0.5f, 1f);
+        titleRect.pivot = new Vector2(0.5f, 1f);
+        titleRect.anchoredPosition = new Vector2(0, -40);
+        titleRect.sizeDelta = new Vector2(600, 80);
+        Text titleText = titleObj.AddComponent<Text>();
+        titleText.text = "SELECT SKILLS";
+        titleText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        titleText.fontSize = 48;
+        titleText.fontStyle = FontStyle.Bold;
+        titleText.alignment = TextAnchor.MiddleCenter;
+        titleText.color = new Color(1f, 0.8f, 0.2f, 1f);
+
+        GameObject subtitleObj = new GameObject("Subtitle");
+        subtitleObj.transform.SetParent(selectPanel.transform, false);
+        RectTransform subRect = subtitleObj.AddComponent<RectTransform>();
+        subRect.anchorMin = new Vector2(0.5f, 1f);
+        subRect.anchorMax = new Vector2(0.5f, 1f);
+        subRect.pivot = new Vector2(0.5f, 1f);
+        subRect.anchoredPosition = new Vector2(0, -120);
+        subRect.sizeDelta = new Vector2(800, 40);
+        Text subText = subtitleObj.AddComponent<Text>();
+        subText.text = "Click to select skills for this run (consumes 1 each)";
+        subText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        subText.fontSize = 22;
+        subText.alignment = TextAnchor.MiddleCenter;
+        subText.color = new Color(0.7f, 0.7f, 0.8f, 1f);
+
+        CreateSelectBackButton();
+        CreateStartButton();
+    }
+
+    void RefreshSelectPanel()
+    {
+        GameObject container = GameObject.Find("SelectCardsContainer");
+        if (container != null)
         {
-            if (equipped == id)
-            {
-                buttonBg.color = new Color(0.2f, 0.6f, 0.3f, 1f);
-                buttonText.text = "EQUIPPED";
-                button.onClick.AddListener(() => OnUnequipClicked(id, buttonText, buttonBg));
-            }
-            else
-            {
-                buttonBg.color = new Color(0.3f, 0.5f, 0.8f, 1f);
-                buttonText.text = "EQUIP";
-                button.onClick.AddListener(() => OnEquipClicked(id, buttonText, buttonBg));
-            }
-            priceText.text = "OWNED";
-            priceText.color = new Color(0.4f, 0.8f, 0.4f, 1f);
+            Destroy(container);
+        }
+
+        container = new GameObject("SelectCardsContainer");
+        container.transform.SetParent(selectPanel.transform, false);
+
+        RectTransform containerRect = container.AddComponent<RectTransform>();
+        containerRect.anchorMin = new Vector2(0.5f, 0.5f);
+        containerRect.anchorMax = new Vector2(0.5f, 0.5f);
+        containerRect.pivot = new Vector2(0.5f, 0.5f);
+        containerRect.anchoredPosition = new Vector2(0, 0);
+        containerRect.sizeDelta = new Vector2(1000, 200);
+
+        HorizontalLayoutGroup layout = container.AddComponent<HorizontalLayoutGroup>();
+        layout.spacing = 20;
+        layout.childAlignment = TextAnchor.MiddleCenter;
+        layout.childForceExpandWidth = false;
+        layout.childForceExpandHeight = false;
+
+        string[] skills = { "magnet", "doublediamonds", "laser", "triplejump", "secondchance" };
+        string[] names = { "MAGNET", "x2 DIAMOND", "LASER", "x3 JUMP", "REVIVE" };
+        Color[] colors = {
+            new Color(0.9f, 0.3f, 0.3f, 1f),
+            new Color(0.2f, 0.6f, 0.9f, 1f),
+            new Color(1f, 0.6f, 0.1f, 1f),
+            new Color(0.3f, 0.8f, 0.3f, 1f),
+            new Color(0.7f, 0.4f, 0.9f, 1f)
+        };
+
+        for (int i = 0; i < skills.Length; i++)
+        {
+            CreateSelectCard(container.transform, skills[i], names[i], colors[i]);
+        }
+    }
+
+    void CreateSelectCard(Transform parent, string id, string name, Color color)
+    {
+        int owned = PersistentData.GetSkillCount(id);
+        bool isSelected = selectedSkills.Contains(id);
+
+        GameObject card = new GameObject("SelectCard_" + id);
+        card.transform.SetParent(parent, false);
+
+        RectTransform cardRect = card.AddComponent<RectTransform>();
+        cardRect.sizeDelta = new Vector2(160, 180);
+
+        LayoutElement layoutElement = card.AddComponent<LayoutElement>();
+        layoutElement.minWidth = 160;
+        layoutElement.minHeight = 180;
+        layoutElement.preferredWidth = 160;
+        layoutElement.preferredHeight = 180;
+
+        Image cardBg = card.AddComponent<Image>();
+        if (isSelected)
+        {
+            cardBg.color = color;
+        }
+        else if (owned > 0)
+        {
+            cardBg.color = new Color(color.r * 0.3f, color.g * 0.3f, color.b * 0.3f, 0.9f);
         }
         else
         {
-            buttonBg.color = new Color(0.8f, 0.6f, 0.2f, 1f);
-            buttonText.text = "BUY";
-            button.onClick.AddListener(() => OnBuyClicked(id, price, buttonText, buttonBg, priceText));
+            cardBg.color = new Color(0.15f, 0.15f, 0.2f, 0.8f);
         }
+
+        Button cardButton = card.AddComponent<Button>();
+        string skillId = id;
+        cardButton.onClick.AddListener(() => OnSelectSkillClicked(skillId));
+
+        GameObject nameObj = new GameObject("Name");
+        nameObj.transform.SetParent(card.transform, false);
+        RectTransform nameRect = nameObj.AddComponent<RectTransform>();
+        nameRect.anchorMin = new Vector2(0.5f, 0.5f);
+        nameRect.anchorMax = new Vector2(0.5f, 0.5f);
+        nameRect.pivot = new Vector2(0.5f, 0.5f);
+        nameRect.anchoredPosition = new Vector2(0, 20);
+        nameRect.sizeDelta = new Vector2(150, 50);
+        Text nameText = nameObj.AddComponent<Text>();
+        nameText.text = name;
+        nameText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        nameText.fontSize = 18;
+        nameText.fontStyle = FontStyle.Bold;
+        nameText.alignment = TextAnchor.MiddleCenter;
+        nameText.color = Color.white;
+
+        GameObject ownedObj = new GameObject("Owned");
+        ownedObj.transform.SetParent(card.transform, false);
+        RectTransform ownedRect = ownedObj.AddComponent<RectTransform>();
+        ownedRect.anchorMin = new Vector2(0.5f, 0f);
+        ownedRect.anchorMax = new Vector2(0.5f, 0f);
+        ownedRect.pivot = new Vector2(0.5f, 0f);
+        ownedRect.anchoredPosition = new Vector2(0, 40);
+        ownedRect.sizeDelta = new Vector2(150, 30);
+        Text ownedText = ownedObj.AddComponent<Text>();
+        ownedText.text = "x" + owned.ToString();
+        ownedText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        ownedText.fontSize = 24;
+        ownedText.fontStyle = FontStyle.Bold;
+        ownedText.alignment = TextAnchor.MiddleCenter;
+        ownedText.color = owned > 0 ? new Color(0.4f, 1f, 0.4f, 1f) : new Color(0.5f, 0.5f, 0.5f, 1f);
+
+        GameObject statusObj = new GameObject("Status");
+        statusObj.transform.SetParent(card.transform, false);
+        RectTransform statusRect = statusObj.AddComponent<RectTransform>();
+        statusRect.anchorMin = new Vector2(0.5f, 0f);
+        statusRect.anchorMax = new Vector2(0.5f, 0f);
+        statusRect.pivot = new Vector2(0.5f, 0f);
+        statusRect.anchoredPosition = new Vector2(0, 15);
+        statusRect.sizeDelta = new Vector2(150, 25);
+        Text statusText = statusObj.AddComponent<Text>();
+        if (owned == 0)
+        {
+            statusText.text = "BUY IN SHOP";
+            statusText.color = new Color(0.6f, 0.6f, 0.6f, 1f);
+        }
+        else if (isSelected)
+        {
+            statusText.text = "SELECTED";
+            statusText.color = new Color(1f, 1f, 0.3f, 1f);
+        }
+        else
+        {
+            statusText.text = "TAP TO SELECT";
+            statusText.color = new Color(0.8f, 0.8f, 0.8f, 1f);
+        }
+        statusText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        statusText.fontSize = 12;
+        statusText.alignment = TextAnchor.MiddleCenter;
     }
+
+    void OnSelectSkillClicked(string id)
+    {
+        int owned = PersistentData.GetSkillCount(id);
+        if (owned == 0) return;
+
+        if (selectedSkills.Contains(id))
+        {
+            selectedSkills.Remove(id);
+        }
+        else
+        {
+            selectedSkills.Add(id);
+        }
+        RefreshSelectPanel();
+    }
+
+    void CreateSelectBackButton()
+    {
+        GameObject buttonObj = new GameObject("SelectBackButton");
+        buttonObj.transform.SetParent(selectPanel.transform, false);
+
+        RectTransform buttonRect = buttonObj.AddComponent<RectTransform>();
+        buttonRect.anchorMin = new Vector2(0, 1);
+        buttonRect.anchorMax = new Vector2(0, 1);
+        buttonRect.pivot = new Vector2(0, 1);
+        buttonRect.anchoredPosition = new Vector2(30, -30);
+        buttonRect.sizeDelta = new Vector2(120, 50);
+
+        Image buttonBg = buttonObj.AddComponent<Image>();
+        buttonBg.color = new Color(0.5f, 0.5f, 0.6f, 1f);
+
+        Button button = buttonObj.AddComponent<Button>();
+        button.onClick.AddListener(OnSelectBackClicked);
+
+        GameObject textObj = new GameObject("Text");
+        textObj.transform.SetParent(buttonObj.transform, false);
+        RectTransform textRect = textObj.AddComponent<RectTransform>();
+        textRect.anchorMin = Vector2.zero;
+        textRect.anchorMax = Vector2.one;
+        textRect.offsetMin = Vector2.zero;
+        textRect.offsetMax = Vector2.zero;
+        Text buttonText = textObj.AddComponent<Text>();
+        buttonText.text = "← BACK";
+        buttonText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        buttonText.fontSize = 20;
+        buttonText.fontStyle = FontStyle.Bold;
+        buttonText.alignment = TextAnchor.MiddleCenter;
+        buttonText.color = Color.white;
+    }
+
+    void CreateStartButton()
+    {
+        GameObject buttonObj = new GameObject("StartButton");
+        buttonObj.transform.SetParent(selectPanel.transform, false);
+
+        RectTransform buttonRect = buttonObj.AddComponent<RectTransform>();
+        buttonRect.anchorMin = new Vector2(0.5f, 0f);
+        buttonRect.anchorMax = new Vector2(0.5f, 0f);
+        buttonRect.pivot = new Vector2(0.5f, 0f);
+        buttonRect.anchoredPosition = new Vector2(0, 50);
+        buttonRect.sizeDelta = new Vector2(250, 70);
+
+        Image buttonBg = buttonObj.AddComponent<Image>();
+        buttonBg.color = new Color(0.2f, 0.8f, 0.3f, 1f);
+
+        Button button = buttonObj.AddComponent<Button>();
+        button.onClick.AddListener(OnStartGameClicked);
+
+        GameObject textObj = new GameObject("Text");
+        textObj.transform.SetParent(buttonObj.transform, false);
+        RectTransform textRect = textObj.AddComponent<RectTransform>();
+        textRect.anchorMin = Vector2.zero;
+        textRect.anchorMax = Vector2.one;
+        textRect.offsetMin = Vector2.zero;
+        textRect.offsetMax = Vector2.zero;
+        Text buttonText = textObj.AddComponent<Text>();
+        buttonText.text = "▶ START GAME";
+        buttonText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        buttonText.fontSize = 28;
+        buttonText.fontStyle = FontStyle.Bold;
+        buttonText.alignment = TextAnchor.MiddleCenter;
+        buttonText.color = Color.white;
+    }
+
+    void OnSelectBackClicked()
+    {
+        selectPanel.SetActive(false);
+        menuPanel.SetActive(true);
+    }
+
 
     void CreateBackButton()
     {
@@ -512,6 +868,15 @@ public class MainMenuUI : MonoBehaviour
 
     void OnPlayClicked()
     {
+        menuPanel.SetActive(false);
+        selectedSkills.Clear();
+        RefreshSelectPanel();
+        selectPanel.SetActive(true);
+    }
+
+    void OnStartGameClicked()
+    {
+        PersistentData.SetSelectedSkills(selectedSkills);
         Time.timeScale = 1f;
         Destroy(canvas.gameObject);
         Destroy(gameObject);
@@ -541,20 +906,15 @@ public class MainMenuUI : MonoBehaviour
         isShopOpen = false;
     }
 
-    void OnBuyClicked(string id, int price, Text buttonText, Image buttonBg, Text priceText)
+    void OnBuyClicked(string id, int price, Text ownedText)
     {
         if (PersistentData.SpendDiamonds(price))
         {
             PersistentData.AddOwnedPowerUp(id);
             
-            buttonText.text = "EQUIP";
-            buttonBg.color = new Color(0.3f, 0.5f, 0.8f, 1f);
-            
-            priceText.text = "OWNED";
-            priceText.color = new Color(0.4f, 0.8f, 0.4f, 1f);
-
-            buttonText.GetComponentInParent<Button>().onClick.RemoveAllListeners();
-            buttonText.GetComponentInParent<Button>().onClick.AddListener(() => OnEquipClicked(id, buttonText, buttonBg));
+            int newCount = PersistentData.GetSkillCount(id);
+            ownedText.text = "Owned: " + newCount.ToString();
+            ownedText.color = new Color(0.4f, 0.9f, 0.4f, 1f);
 
             UpdateShopDiamondDisplay();
             UpdateDiamondDisplay();

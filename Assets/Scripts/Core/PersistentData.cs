@@ -5,8 +5,8 @@ public static class PersistentData
 {
     private const string DIAMONDS_KEY = "TotalDiamonds";
     private const string HIGH_SCORE_KEY = "HighScore";
-    private const string OWNED_POWERUPS_KEY = "OwnedPowerUps";
-    private const string EQUIPPED_POWERUP_KEY = "EquippedPowerUp";
+    private const string SKILL_COUNT_PREFIX = "SkillCount_";
+    private const string SELECTED_SKILLS_KEY = "SelectedSkills";
 
     public static int GetDiamonds()
     {
@@ -50,10 +50,48 @@ public static class PersistentData
         }
     }
 
-    public static List<string> GetOwnedPowerUps()
+    public static int GetSkillCount(string skillId)
     {
-        string saved = PlayerPrefs.GetString(OWNED_POWERUPS_KEY, "");
-        List<string> owned = new List<string>();
+        return PlayerPrefs.GetInt(SKILL_COUNT_PREFIX + skillId, 0);
+    }
+
+    public static void SetSkillCount(string skillId, int count)
+    {
+        PlayerPrefs.SetInt(SKILL_COUNT_PREFIX + skillId, Mathf.Max(0, count));
+        PlayerPrefs.Save();
+    }
+
+    public static void AddSkill(string skillId)
+    {
+        int current = GetSkillCount(skillId);
+        SetSkillCount(skillId, current + 1);
+    }
+
+    public static bool UseSkill(string skillId)
+    {
+        int current = GetSkillCount(skillId);
+        if (current > 0)
+        {
+            SetSkillCount(skillId, current - 1);
+            return true;
+        }
+        return false;
+    }
+
+    public static bool OwnsPowerUp(string skillId)
+    {
+        return GetSkillCount(skillId) > 0;
+    }
+
+    public static void AddOwnedPowerUp(string skillId)
+    {
+        AddSkill(skillId);
+    }
+
+    public static List<string> GetSelectedSkills()
+    {
+        string saved = PlayerPrefs.GetString(SELECTED_SKILLS_KEY, "");
+        List<string> selected = new List<string>();
         
         if (!string.IsNullOrEmpty(saved))
         {
@@ -62,46 +100,47 @@ public static class PersistentData
             {
                 if (!string.IsNullOrEmpty(part))
                 {
-                    owned.Add(part);
+                    selected.Add(part);
                 }
             }
         }
         
-        return owned;
+        return selected;
     }
 
-    public static bool OwnsPowerUp(string powerUpId)
+    public static void SetSelectedSkills(List<string> skills)
     {
-        return GetOwnedPowerUps().Contains(powerUpId);
+        string combined = string.Join(",", skills.ToArray());
+        PlayerPrefs.SetString(SELECTED_SKILLS_KEY, combined);
+        PlayerPrefs.Save();
     }
 
-    public static void AddOwnedPowerUp(string powerUpId)
+    public static void ClearSelectedSkills()
     {
-        if (!OwnsPowerUp(powerUpId))
+        PlayerPrefs.SetString(SELECTED_SKILLS_KEY, "");
+        PlayerPrefs.Save();
+    }
+
+    public static void ConsumeSelectedSkills()
+    {
+        List<string> selected = GetSelectedSkills();
+        foreach (string skill in selected)
         {
-            List<string> owned = GetOwnedPowerUps();
-            owned.Add(powerUpId);
-            string combined = string.Join(",", owned.ToArray());
-            PlayerPrefs.SetString(OWNED_POWERUPS_KEY, combined);
-            PlayerPrefs.Save();
+            UseSkill(skill);
         }
     }
 
     public static string GetEquippedPowerUp()
     {
-        return PlayerPrefs.GetString(EQUIPPED_POWERUP_KEY, "");
+        return "";
     }
 
     public static void SetEquippedPowerUp(string powerUpId)
     {
-        PlayerPrefs.SetString(EQUIPPED_POWERUP_KEY, powerUpId);
-        PlayerPrefs.Save();
     }
 
     public static void ClearEquippedPowerUp()
     {
-        PlayerPrefs.SetString(EQUIPPED_POWERUP_KEY, "");
-        PlayerPrefs.Save();
     }
 
     public static void ResetAllData()
