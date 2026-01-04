@@ -28,7 +28,11 @@ public class Bullet : MonoBehaviour
         
         CircleCollider2D col = gameObject.AddComponent<CircleCollider2D>();
         col.isTrigger = true;
-        col.radius = 0.2f;
+        col.radius = 0.3f;
+
+        Rigidbody2D rb = gameObject.AddComponent<Rigidbody2D>();
+        rb.bodyType = RigidbodyType2D.Kinematic;
+        rb.gravityScale = 0f;
     }
 
     void Update()
