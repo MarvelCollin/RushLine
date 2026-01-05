@@ -59,6 +59,11 @@ public class GameManager : MonoBehaviour
             gameObject.AddComponent<PowerUpManager>();
         }
         
+        if (AudioManager.Instance == null)
+        {
+            gameObject.AddComponent<AudioManager>();
+        }
+        
         if (UIManager.Instance != null)
         {
             UIManager.Instance.UpdateScore(0);
@@ -73,6 +78,10 @@ public class GameManager : MonoBehaviour
             if (FindObjectOfType<MainMenuUI>() == null)
             {
                 currentState = GameState.Playing;
+                if (AudioManager.Instance != null)
+                {
+                    AudioManager.Instance.PlayBackgroundMusic();
+                }
             }
             return;
         }
